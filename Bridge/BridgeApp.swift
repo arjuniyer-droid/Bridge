@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct BridgeApp: App {
@@ -13,5 +14,6 @@ struct BridgeApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: Dose.self)
     }
 }
