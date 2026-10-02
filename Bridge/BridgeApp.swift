@@ -14,6 +14,6 @@ struct BridgeApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: Dose.self)
+        .modelContainer(for: [Dose.self, Plan.self])
     }
 }
