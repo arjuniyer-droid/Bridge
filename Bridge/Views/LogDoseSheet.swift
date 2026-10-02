@@ -16,6 +16,7 @@ struct LogDoseSheet: View {
     @State private var timeTaken = Date.now
     @State private var painScore = 0
     @State private var isShowingDiscardConfirmation = false
+    @State private var isShowingSaveError = false
 
     private var isValid: Bool {
         !medicationName.trimmingCharacters(in: .whitespaces).isEmpty
@@ -37,7 +38,14 @@ struct LogDoseSheet: View {
                     TextField("Amount", text: $amount)
                 }
                 Section("Time") {
-                    DatePicker("Time taken", selection: $timeTaken)
+                    // Time only: the date stays today, so a logged dose always
+                    // lands in the Today list instead of silently going elsewhere.
+                    DatePicker(
+                        "Time taken",
+                        selection: $timeTaken,
+                        in: ...Date.now,
+                        displayedComponents: .hourAndMinute
+                    )
                 }
                 Section("Pain level") {
                     Stepper("Pain: \(painScore) / 10", value: $painScore, in: 0...10)
@@ -66,6 +74,11 @@ struct LogDoseSheet: View {
             Button("Discard", role: .destructive) { dismiss() }
             Button("Keep Editing", role: .cancel) {}
         }
+        .alert("Couldn't save this dose", isPresented: $isShowingSaveError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Please try again.")
+        }
     }
 
     private func requestDismiss() {
@@ -84,7 +97,15 @@ struct LogDoseSheet: View {
             painScore: painScore
         )
         modelContext.insert(dose)
-        dismiss()
+        // SwiftData autosaves on a delay; save now so a dose isn't lost if the
+        // app is killed right after logging.
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.delete(dose)
+            isShowingSaveError = true
+        }
     }
 }
 
