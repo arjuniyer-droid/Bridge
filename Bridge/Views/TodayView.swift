@@ -82,5 +82,5 @@ private struct DoseRow: View {
 
 #Preview {
     TodayView()
-        .modelContainer(for: Dose.self, inMemory: true)
+        .modelContainer(for: [Dose.self, Plan.self], inMemory: true)
 }
