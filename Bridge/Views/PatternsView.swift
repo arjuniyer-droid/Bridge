@@ -13,6 +13,22 @@ struct PatternsView: View {
     @Query(sort: \Dose.timeTaken) private var doses: [Dose]
     @Query private var plans: [Plan]
 
+    /// Whether the charts reach back to the first logged dose instead of 14 days.
+    @State private var showAllHistory = false
+
+    /// True when something was logged before the last 14 days, so there is
+    /// more history than the default charts show.
+    private var hasOlderHistory: Bool {
+        guard let first = doses.first else { return false }
+        let calendar = Calendar.current
+        let windowStart = calendar.date(
+            byAdding: .day,
+            value: -(Self.dayCount - 1),
+            to: calendar.startOfDay(for: .now)
+        )!
+        return calendar.startOfDay(for: first.timeTaken) < windowStart
+    }
+
     /// Doses per day the prescriber's plan adds up to across all medications,
     /// or nil without a plan. The chart counts every dose of every medication,
     /// so the plan has to be totalled the same way to be comparable.
@@ -21,7 +37,8 @@ struct PatternsView: View {
         return total > 0 ? total : nil
     }
 
-    /// The last 14 days, oldest first and ending today. Days with no doses are
+    /// The last 14 days, or every day since the first logged dose when showing
+    /// all history. Oldest first and ending today. Days with no doses are
     /// included with a count of zero and no pain score so gaps are visible.
     private var dayStats: [DayStats] {
         let calendar = Calendar.current
@@ -31,7 +48,14 @@ struct PatternsView: View {
             by: { calendar.startOfDay(for: $0.timeTaken) }
         )
 
-        return (0..<Self.dayCount).reversed().map { daysAgo in
+        var spanDays = Self.dayCount
+        if showAllHistory, let first = doses.first {
+            let firstDay = calendar.startOfDay(for: first.timeTaken)
+            let sinceFirst = calendar.dateComponents([.day], from: firstDay, to: today).day ?? 0
+            spanDays = max(Self.dayCount, sinceFirst + 1)
+        }
+
+        return (0..<spanDays).reversed().map { daysAgo in
             let day = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
             let dayDoses = dosesByDay[day] ?? []
             let averagePain = dayDoses.isEmpty
@@ -48,14 +72,31 @@ struct PatternsView: View {
         NavigationStack {
             Group {
                 if total == 0 {
-                    ContentUnavailableView(
-                        "No doses in the last 14 days",
-                        systemImage: "chart.bar",
-                        description: Text("Log a dose on the Today tab and it will show up here.")
-                    )
+                    ContentUnavailableView {
+                        Label("No doses in the last 14 days", systemImage: "chart.bar")
+                    } description: {
+                        Text("Log a dose on the Today tab and it will show up here.")
+                    } actions: {
+                        // Older doses may exist even though the last 14 days are empty.
+                        if hasOlderHistory {
+                            Button("See all history") { showAllHistory = true }
+                                .buttonStyle(.bordered)
+                        }
+                    }
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
+                            if hasOlderHistory {
+                                Button {
+                                    showAllHistory.toggle()
+                                } label: {
+                                    Label(
+                                        showAllHistory ? "Show last \(Self.dayCount) days" : "See all history",
+                                        systemImage: showAllHistory ? "calendar" : "clock.arrow.circlepath"
+                                    )
+                                }
+                                .buttonStyle(.bordered)
+                            }
                             VStack(alignment: .leading, spacing: 16) {
                                 dosesSummary(total: total, days: days)
                                 DosesPerDayChart(days: days, prescribedPerDay: prescribedPerDay)
@@ -63,7 +104,7 @@ struct PatternsView: View {
                             }
                             VStack(alignment: .leading, spacing: 16) {
                                 painSummary
-                                AveragePainChart(days: days)
+                                AveragePainChart(days: days, showsPoints: days.count <= 31)
                                     .frame(height: 180)
                             }
                         }
@@ -82,7 +123,11 @@ struct PatternsView: View {
         return VStack(alignment: .leading, spacing: 4) {
             Text("Doses per day")
                 .font(.headline)
-            Text("\(total) \(total == 1 ? "dose" : "doses") in the last \(Self.dayCount) days")
+            Text(
+                days.count > Self.dayCount
+                    ? "\(total) \(total == 1 ? "dose" : "doses") over \(days.count) days"
+                    : "\(total) \(total == 1 ? "dose" : "doses") in the last \(Self.dayCount) days"
+            )
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Text(range)
@@ -111,13 +156,27 @@ private struct DayStats: Identifiable {
     var id: Date { day }
 }
 
-/// The x axis both charts share: the same 14 days, every other day labelled
-/// counting back from today so today is always labelled.
+/// The x axis both charts share. For 14 days, every other day is labelled by
+/// its day number, counting back from today so today is always labelled. For a
+/// longer span, about six dates are labelled as month/day, kept clear of the
+/// right edge where a label would be clipped.
 private struct DayAxis: ViewModifier {
     let days: [DayStats]
 
+    private var isCompact: Bool { days.count <= 14 }
+
     private var labelledDays: [Date] {
-        stride(from: days.count - 1, through: 0, by: -2).map { days[$0].day }
+        if isCompact {
+            return stride(from: days.count - 1, through: 0, by: -2).map { days[$0].day }
+        }
+        let count = days.count
+        let step = max(2, Int((Double(count) / 6).rounded(.up)))
+        let lastLabelled = max(0, count - 1 - Int((Double(count) * 0.15).rounded(.up)))
+        return stride(from: 0, through: lastLabelled, by: step).map { days[$0].day }
+    }
+
+    private var labelFormat: Date.FormatStyle {
+        isCompact ? Date.FormatStyle().day() : Date.FormatStyle().month(.defaultDigits).day()
     }
 
     private var domain: ClosedRange<Date> {
@@ -133,9 +192,7 @@ private struct DayAxis: ViewModifier {
                 AxisMarks(values: labelledDays) { _ in
                     AxisGridLine()
                     AxisTick()
-                    // Day number only: short enough never to be clipped at the edge.
-                    // The month is in the header above the first chart.
-                    AxisValueLabel(format: .dateTime.day())
+                    AxisValueLabel(format: labelFormat)
                 }
             }
     }
@@ -199,6 +256,9 @@ private struct DosesPerDayChart: View {
 /// and the line breaks there rather than dipping to zero or joining across.
 private struct AveragePainChart: View {
     let days: [DayStats]
+    /// Dots on each day are only useful over a short span; over a long one they
+    /// pile up, so the line stands alone.
+    let showsPoints: Bool
 
     /// Days that have a score, each tagged with which unbroken run of
     /// consecutive such days it belongs to, so a gap splits the line.
@@ -229,11 +289,13 @@ private struct AveragePainChart: View {
                 .foregroundStyle(.red)
                 .interpolationMethod(.monotone)
 
-                PointMark(
-                    x: .value("Day", point.stats.day, unit: .day),
-                    y: .value("Average pain", pain)
-                )
-                .foregroundStyle(.red)
+                if showsPoints {
+                    PointMark(
+                        x: .value("Day", point.stats.day, unit: .day),
+                        y: .value("Average pain", pain)
+                    )
+                    .foregroundStyle(.red)
+                }
             }
         }
         .chartYScale(domain: 0...10)
