@@ -9,6 +9,7 @@ import SwiftData
 /// Every logged dose, grouped by day with the newest day first.
 struct HistoryView: View {
     @Query(sort: \Dose.timeTaken, order: .reverse) private var doses: [Dose]
+    @State private var formTarget: DoseFormTarget?
 
     private struct DayGroup: Identifiable {
         let day: Date
@@ -43,7 +44,13 @@ struct HistoryView: View {
                         ForEach(groups) { group in
                             Section {
                                 ForEach(group.doses) { dose in
-                                    DoseRow(dose: dose)
+                                    Button {
+                                        formTarget = DoseFormTarget(dose: dose)
+                                    } label: {
+                                        DoseRow(dose: dose)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityHint("Edit this dose")
                                 }
                             } header: {
                                 header(for: group)
@@ -53,6 +60,9 @@ struct HistoryView: View {
                 }
             }
             .navigationTitle("History")
+            .sheet(item: $formTarget) { target in
+                DoseFormSheet(dose: target.dose)
+            }
         }
     }
 

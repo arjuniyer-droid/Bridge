@@ -28,5 +28,7 @@ struct DoseRow: View {
                 .foregroundStyle(.orange)
         }
         .padding(.vertical, 4)
+        // So a tap anywhere on the row counts, not just on the text.
+        .contentShape(Rectangle())
     }
 }

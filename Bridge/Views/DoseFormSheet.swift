@@ -1,15 +1,23 @@
 //
-//  LogDoseSheet.swift
+//  DoseFormSheet.swift
 //  Bridge
 //
 
 import SwiftUI
 import SwiftData
 
-/// A form, presented as a sheet, for recording a single dose. Tapping the name
-/// or amount field offers what's in the person's plan; typing a different
-/// value still works.
-struct LogDoseSheet: View {
+/// What the dose form is showing: a new dose when `dose` is nil, otherwise a
+/// logged dose being corrected. The id is generated up front so the sheet
+/// never reads a dose that was deleted.
+struct DoseFormTarget: Identifiable {
+    let dose: Dose?
+    let id = UUID()
+}
+
+/// A form, presented as a sheet, for logging a dose or correcting one that was
+/// already logged. Tapping the name or amount field offers what's in the
+/// person's plan; typing a different value still works.
+struct DoseFormSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Plan.medicationName) private var plans: [Plan]
@@ -17,12 +25,38 @@ struct LogDoseSheet: View {
     private enum Field { case name, amount }
     @FocusState private var focusedField: Field?
 
-    @State private var medicationName = ""
-    @State private var amount = ""
-    @State private var timeTaken = Date.now
-    @State private var painScore = 0
+    /// The dose being corrected, or nil when logging a new one.
+    let dose: Dose?
+
+    // The values the form started with. Copied up front so the view never
+    // reads `dose` after it has been deleted.
+    private let originalName: String
+    private let originalAmount: String
+    private let originalTime: Date
+    private let originalPain: Int
+
+    @State private var medicationName: String
+    @State private var amount: String
+    @State private var timeTaken: Date
+    @State private var painScore: Int
     @State private var isShowingDiscardConfirmation = false
-    @State private var isShowingSaveError = false
+    @State private var isShowingDeleteConfirmation = false
+    @State private var isShowingError = false
+    @State private var errorTitle = ""
+
+    init(dose: Dose? = nil) {
+        self.dose = dose
+        originalName = dose?.medicationName ?? ""
+        originalAmount = dose?.amount ?? ""
+        originalTime = dose?.timeTaken ?? .now
+        originalPain = dose?.painScore ?? 0
+        _medicationName = State(initialValue: dose?.medicationName ?? "")
+        _amount = State(initialValue: dose?.amount ?? "")
+        _timeTaken = State(initialValue: dose?.timeTaken ?? .now)
+        _painScore = State(initialValue: dose?.painScore ?? 0)
+    }
+
+    private var isEditing: Bool { dose != nil }
 
     private var trimmedName: String {
         medicationName.trimmingCharacters(in: .whitespaces)
@@ -36,9 +70,13 @@ struct LogDoseSheet: View {
         !trimmedName.isEmpty && !trimmedAmount.isEmpty
     }
 
-    /// Whether the person has entered anything worth not losing silently.
-    private var hasUnsavedInput: Bool {
-        !trimmedName.isEmpty || !trimmedAmount.isEmpty || painScore != 0
+    /// Whether anything differs from what the form started with. For a new
+    /// dose that is anything entered, which is worth not losing silently.
+    private var hasChanges: Bool {
+        trimmedName != originalName
+            || trimmedAmount != originalAmount
+            || painScore != originalPain
+            || (isEditing && timeTaken != originalTime)
     }
 
     /// Plan medication names that fit what's been typed, minus an exact match.
@@ -99,21 +137,49 @@ struct LogDoseSheet: View {
                     }
                 }
                 Section("Time") {
-                    // Time only: the date stays today, so a logged dose always
-                    // lands in the Today list instead of silently going elsewhere.
-                    DatePicker(
-                        "Time taken",
-                        selection: $timeTaken,
-                        in: ...Date.now,
-                        displayedComponents: .hourAndMinute
-                    )
+                    if isEditing {
+                        // A correction can fix the day as well as the time. The
+                        // History tab shows every day, so the dose won't vanish.
+                        DatePicker(
+                            "Taken",
+                            selection: $timeTaken,
+                            in: ...Date.now,
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+                    } else {
+                        // Time only: a new dose is for today, so it always
+                        // lands in the Today list.
+                        DatePicker(
+                            "Time taken",
+                            selection: $timeTaken,
+                            in: ...Date.now,
+                            displayedComponents: .hourAndMinute
+                        )
+                    }
                 }
                 Section("Pain level") {
                     Stepper("Pain: \(painScore) / 10", value: $painScore, in: 0...10)
                 }
+                if isEditing {
+                    Section {
+                        Button("Delete Dose", role: .destructive) {
+                            isShowingDeleteConfirmation = true
+                        }
+                    }
+                }
             }
             .animation(.default, value: focusedField)
-            .navigationTitle("Log a Dose")
+            .confirmationDialog(
+                "Delete this dose?",
+                isPresented: $isShowingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) { deleteDose() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will remove \(originalName) (\(originalAmount)) logged \(originalTime.formatted(date: .abbreviated, time: .shortened)). This can't be undone.")
+            }
+            .navigationTitle(isEditing ? "Edit Dose" : "Log a Dose")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -121,22 +187,22 @@ struct LogDoseSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
-                        .disabled(!isValid)
+                        .disabled(!isValid || (isEditing && !hasChanges))
                 }
             }
             // Prevent a stray swipe from closing the sheet and silently
             // discarding whatever the person has already typed.
-            .interactiveDismissDisabled(hasUnsavedInput)
+            .interactiveDismissDisabled(hasChanges)
         }
         .confirmationDialog(
-            "Discard this dose?",
+            isEditing ? "Discard your changes?" : "Discard this dose?",
             isPresented: $isShowingDiscardConfirmation,
             titleVisibility: .visible
         ) {
             Button("Discard", role: .destructive) { dismiss() }
             Button("Keep Editing", role: .cancel) {}
         }
-        .alert("Couldn't save this dose", isPresented: $isShowingSaveError) {
+        .alert(errorTitle, isPresented: $isShowingError) {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Please try again.")
@@ -144,7 +210,7 @@ struct LogDoseSheet: View {
     }
 
     private func requestDismiss() {
-        if hasUnsavedInput {
+        if hasChanges {
             isShowingDiscardConfirmation = true
         } else {
             dismiss()
@@ -152,21 +218,43 @@ struct LogDoseSheet: View {
     }
 
     private func save() {
-        let dose = Dose(
-            medicationName: trimmedName,
-            amount: trimmedAmount,
-            timeTaken: timeTaken,
-            painScore: painScore
-        )
-        modelContext.insert(dose)
+        if let dose {
+            dose.medicationName = trimmedName
+            dose.amount = trimmedAmount
+            dose.timeTaken = timeTaken
+            dose.painScore = painScore
+        } else {
+            modelContext.insert(
+                Dose(
+                    medicationName: trimmedName,
+                    amount: trimmedAmount,
+                    timeTaken: timeTaken,
+                    painScore: painScore
+                )
+            )
+        }
         // SwiftData autosaves on a delay; save now so a dose isn't lost if the
-        // app is killed right after logging.
+        // app is killed right after logging or correcting it.
         do {
             try modelContext.save()
             dismiss()
         } catch {
-            modelContext.delete(dose)
-            isShowingSaveError = true
+            modelContext.rollback()
+            errorTitle = isEditing ? "Couldn't save your changes" : "Couldn't save this dose"
+            isShowingError = true
+        }
+    }
+
+    private func deleteDose() {
+        guard let dose else { return }
+        modelContext.delete(dose)
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            errorTitle = "Couldn't delete this dose"
+            isShowingError = true
         }
     }
 }
@@ -193,26 +281,7 @@ private struct SuggestionRow: View {
     }
 }
 
-#Preview("With a plan") {
-    LogDoseSheet()
-        .modelContainer(previewContainer(withPlan: true))
-}
-
-#Preview("No plan") {
-    LogDoseSheet()
-        .modelContainer(previewContainer(withPlan: false))
-}
-
-@MainActor
-private func previewContainer(withPlan: Bool) -> ModelContainer {
-    let container = try! ModelContainer(
-        for: Dose.self, Plan.self,
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
-    if withPlan {
-        container.mainContext.insert(
-            Plan(medicationName: "Ibuprofen", amountPerDose: "400mg", dosesPerDay: 2)
-        )
-    }
-    return container
+#Preview("Log") {
+    DoseFormSheet()
+        .modelContainer(for: [Dose.self, Plan.self], inMemory: true)
 }

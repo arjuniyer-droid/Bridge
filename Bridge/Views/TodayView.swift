@@ -8,7 +8,8 @@ import SwiftData
 
 struct TodayView: View {
     @Query private var todaysDoses: [Dose]
-    @State private var isShowingLogDose = false
+    /// What the dose sheet is showing: a new dose (nil dose) or a logged one.
+    @State private var formTarget: DoseFormTarget?
 
     init() {
         let startOfToday = Calendar.current.startOfDay(for: .now)
@@ -23,7 +24,7 @@ struct TodayView: View {
         NavigationStack {
             VStack(spacing: 16) {
                 Button {
-                    isShowingLogDose = true
+                    formTarget = DoseFormTarget(dose: nil)
                 } label: {
                     Label("Log a Dose", systemImage: "plus.circle.fill")
                         .font(.title2.bold())
@@ -43,14 +44,20 @@ struct TodayView: View {
                     .frame(maxHeight: .infinity)
                 } else {
                     List(todaysDoses) { dose in
-                        DoseRow(dose: dose)
+                        Button {
+                            formTarget = DoseFormTarget(dose: dose)
+                        } label: {
+                            DoseRow(dose: dose)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Edit this dose")
                     }
                     .listStyle(.plain)
                 }
             }
             .navigationTitle("Today")
-            .sheet(isPresented: $isShowingLogDose) {
-                LogDoseSheet()
+            .sheet(item: $formTarget) { target in
+                DoseFormSheet(dose: target.dose)
             }
         }
     }
