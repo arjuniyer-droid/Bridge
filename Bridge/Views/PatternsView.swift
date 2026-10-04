@@ -81,12 +81,34 @@ private struct ChartData {
     var total: Int { periods.reduce(0) { $0 + $1.count } }
 }
 
+/// The day or week whose doses were opened by tapping its bar.
+private struct PeriodSelection: Identifiable {
+    let id = UUID()
+    let start: Date
+    /// Exclusive: the start of the next day or week.
+    let end: Date
+    let title: String
+    let spansOneDay: Bool
+
+    init(period: PeriodStats, granularity: Granularity) {
+        let calendar = Calendar.current
+        start = period.start
+        spansOneDay = granularity == .day
+        end = calendar.date(byAdding: .day, value: spansOneDay ? 1 : 7, to: period.start)!
+        title = spansOneDay
+            ? period.start.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
+            : "Week of " + period.start.formatted(.dateTime.month(.abbreviated).day())
+    }
+}
+
 private struct PatternsContent: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var doses: [Dose]
     @Query private var plans: [Plan]
     /// How many doses fall before the default 14-day window.
     @State private var olderCount = 0
+    /// The tapped bar whose doses are showing, if any.
+    @State private var selection: PeriodSelection?
 
     let today: Date
     @Binding var showAllHistory: Bool
@@ -198,8 +220,10 @@ private struct PatternsContent: View {
                         }
                         VStack(alignment: .leading, spacing: 16) {
                             dosesSummary(data)
-                            DosesPerDayChart(data: data, prescribedPerDay: prescribedPerDay)
-                                .frame(height: 220)
+                            DosesPerDayChart(data: data, prescribedPerDay: prescribedPerDay) { period in
+                                selection = PeriodSelection(period: period, granularity: data.granularity)
+                            }
+                            .frame(height: 220)
                         }
                         VStack(alignment: .leading, spacing: 16) {
                             painSummary(data)
@@ -214,6 +238,9 @@ private struct PatternsContent: View {
         .onAppear(perform: refreshOlderCount)
         .onChange(of: doses.count) { refreshOlderCount() }
         .onChange(of: today) { refreshOlderCount() }
+        .sheet(item: $selection) { selection in
+            PeriodDosesSheet(selection: selection)
+        }
     }
 
     private func dosesSummary(_ data: ChartData) -> some View {
@@ -244,6 +271,9 @@ private struct PatternsContent: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Text("Tap a bar to see and edit that \(data.granularity == .week ? "week" : "day")'s doses.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -339,6 +369,13 @@ private func yAxisMarks(_ ticks: [Double]) -> some AxisContent {
 private struct DosesPerDayChart: View {
     let data: ChartData
     let prescribedPerDay: Int?
+    /// Called with the day or week whose bar was tapped, if it has any doses.
+    let onSelect: (PeriodStats) -> Void
+
+    /// Number labels on the bars only fit while the bars are wide.
+    private var showsValueLabels: Bool {
+        data.granularity == .day && data.periods.count <= ChartSpan.defaultDays
+    }
 
     /// Y-axis marks. A daily count is never fractional, so those marks are
     /// whole numbers; a weekly average can be, so those get decimal steps. The
@@ -364,6 +401,15 @@ private struct DosesPerDayChart: View {
                 y: .value("Doses per day", item.dosesPerDay)
             )
             .foregroundStyle(.tint)
+            .annotation(position: .top, spacing: 2) {
+                // The count on each bar, only while there are few enough bars for
+                // the numbers to stay readable, and not on empty days.
+                if showsValueLabels && item.count > 0 {
+                    Text("\(item.count)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             if let prescribedPerDay {
                 RuleMark(y: .value("Prescribed", prescribedPerDay))
@@ -378,7 +424,104 @@ private struct DosesPerDayChart: View {
         }
         .chartYScale(domain: 0...(yTicks.last ?? 1))
         .chartYAxis { yAxisMarks(yTicks) }
+        .chartYAxisLabel(data.granularity == .week ? "Doses per day (weekly avg)" : "Doses", position: .leading)
+        .chartXAxisLabel(position: .bottom, alignment: .center) { Text(data.granularity == .week ? "Week of" : "Day of month") }
         .modifier(PeriodAxis(data: data))
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .onTapGesture { location in
+                        guard let plotFrame = proxy.plotFrame else { return }
+                        let x = location.x - geometry[plotFrame].origin.x
+                        guard let date = proxy.value(atX: x, as: Date.self) else { return }
+                        // The bar the tap landed in is the last one starting at or before it.
+                        if let period = data.periods.last(where: { $0.start <= date }), period.count > 0 {
+                            onSelect(period)
+                        }
+                    }
+            }
+        }
+    }
+}
+
+/// The doses of one tapped day or week, each opening the edit form.
+private struct PeriodDosesSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Query private var doses: [Dose]
+    @State private var formTarget: DoseFormTarget?
+
+    let selection: PeriodSelection
+
+    init(selection: PeriodSelection) {
+        let start = selection.start
+        let end = selection.end
+        let predicate = #Predicate<Dose> { dose in
+            dose.timeTaken >= start && dose.timeTaken < end
+        }
+        _doses = Query(filter: predicate, sort: \Dose.timeTaken, order: .reverse)
+        self.selection = selection
+    }
+
+    private struct DayGroup: Identifiable {
+        let day: Date
+        let doses: [Dose]
+        var id: Date { day }
+    }
+
+    /// The period's doses by calendar day, newest day first.
+    private var groups: [DayGroup] {
+        let calendar = Calendar.current
+        return Dictionary(grouping: doses, by: { calendar.startOfDay(for: $0.timeTaken) })
+            .map { DayGroup(day: $0.key, doses: $0.value) }
+            .sorted { $0.day > $1.day }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if doses.isEmpty {
+                    ContentUnavailableView(
+                        "No doses",
+                        systemImage: "pills",
+                        description: Text("Nothing is logged for this period.")
+                    )
+                } else {
+                    List {
+                        ForEach(groups) { group in
+                            Section {
+                                ForEach(group.doses) { dose in
+                                    Button {
+                                        formTarget = DoseFormTarget(dose: dose)
+                                    } label: {
+                                        DoseRow(dose: dose)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityHint("Edit this dose")
+                                }
+                            } header: {
+                                // A single day's title is already in the navigation bar.
+                                if !selection.spansOneDay {
+                                    Text(group.day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(selection.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .sheet(item: $formTarget) { target in
+                DoseFormSheet(dose: target.dose)
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }
 
@@ -391,6 +534,11 @@ private struct AveragePainChart: View {
     /// Dots on each period are only useful over a short span; over a long one
     /// they pile up, so the line stands alone.
     private var showsPoints: Bool { data.periods.count <= 31 }
+
+    /// Number labels on the dots only fit in the short 14-day view.
+    private var showsValueLabels: Bool {
+        data.granularity == .day && data.periods.count <= ChartSpan.defaultDays
+    }
 
     /// Periods that have a score, each tagged with which unbroken run of
     /// consecutive such periods it belongs to, so a gap splits the line.
@@ -427,11 +575,21 @@ private struct AveragePainChart: View {
                         y: .value("Average pain", pain)
                     )
                     .foregroundStyle(.red)
+                    .annotation(position: .top, spacing: 2) {
+                        // The score above each dot, only for the short 14-day view.
+                        if showsValueLabels {
+                            Text(pain, format: .number.precision(.fractionLength(0...1)))
+                                .font(.caption2.bold())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
         }
         .chartYScale(domain: 0...10)
         .chartYAxis { yAxisMarks([0, 2, 4, 6, 8, 10]) }
+        .chartYAxisLabel(data.granularity == .week ? "Pain (weekly avg, 0–10)" : "Pain (0–10)", position: .leading)
+        .chartXAxisLabel(position: .bottom, alignment: .center) { Text(data.granularity == .week ? "Week of" : "Day of month") }
         .modifier(PeriodAxis(data: data))
     }
 }
