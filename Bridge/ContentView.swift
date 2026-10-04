@@ -8,25 +8,18 @@
 import SwiftUI
 
 struct ContentView: View {
-    private enum AppTab: Hashable {
-        case myPlan, today, patterns, support
-    }
-
-    // The app opens on Today even though it isn't the first tab.
-    @State private var selectedTab = AppTab.today
-
     var body: some View {
-        TabView(selection: $selectedTab) {
-            Tab("My Plan", systemImage: "checklist", value: AppTab.myPlan) {
-                MyPlanView()
-            }
-            Tab("Today", systemImage: "sun.max", value: AppTab.today) {
+        TabView {
+            Tab("Today", systemImage: "sun.max") {
                 TodayView()
             }
-            Tab("Patterns", systemImage: "chart.line.uptrend.xyaxis", value: AppTab.patterns) {
+            Tab("My Plan", systemImage: "checklist") {
+                MyPlanView()
+            }
+            Tab("Patterns", systemImage: "chart.line.uptrend.xyaxis") {
                 PatternsView()
             }
-            Tab("Support", systemImage: "heart.circle", value: AppTab.support) {
+            Tab("Support", systemImage: "heart.circle") {
                 SupportView()
             }
         }
