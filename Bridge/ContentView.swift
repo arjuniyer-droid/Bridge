@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     private enum AppTab: Hashable {
-        case myPlan, history, today, patterns, support
+        case myPlan, today, patterns, support
     }
 
     // The app opens on Today even though it isn't the first tab.
@@ -19,9 +19,6 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             Tab("My Plan", systemImage: "checklist", value: AppTab.myPlan) {
                 MyPlanView()
-            }
-            Tab("History", systemImage: "clock.arrow.circlepath", value: AppTab.history) {
-                HistoryView()
             }
             Tab("Today", systemImage: "sun.max", value: AppTab.today) {
                 TodayView()
