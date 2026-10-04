@@ -21,6 +21,7 @@ struct TodayView: View {
                 } label: {
                     Label("Log a Dose", systemImage: "plus.circle.fill")
                         .font(.title2.bold())
+                        .foregroundStyle(Color.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                 }

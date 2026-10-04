@@ -53,6 +53,7 @@ struct SummaryPreviewSheet: View {
                 ShareLink(item: content.text, subject: Text(content.subject)) {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .font(.headline)
+                        .foregroundStyle(Color.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
                 }

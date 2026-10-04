@@ -36,6 +36,7 @@ struct SupportView: View {
 
                 Section {
                     Toggle("I'm a veteran", isOn: $showsVeteranResources)
+                        .tint(.accentColor)
                 } footer: {
                     Text("Adds VA Palo Alto Health Care System resources below.")
                 }

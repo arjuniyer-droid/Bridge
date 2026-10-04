@@ -158,7 +158,7 @@ struct DoseFormSheet: View {
                     }
                 }
                 Section("Pain level") {
-                    Stepper("Pain: \(painScore) / 10", value: $painScore, in: 0...10)
+                    ThumbStepper(title: "Pain: \(painScore) / 10", value: $painScore, range: 0...10)
                 }
                 if isEditing {
                     Section {

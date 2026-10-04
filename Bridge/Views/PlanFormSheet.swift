@@ -72,10 +72,10 @@ struct PlanFormSheet: View {
                         .textInputAutocapitalization(.never)
                 }
                 Section("Doses per day") {
-                    Stepper(
-                        "\(dosesPerDay) per day",
+                    ThumbStepper(
+                        title: "\(dosesPerDay) per day",
                         value: $dosesPerDay,
-                        in: Plan.dosesPerDayRange
+                        range: Plan.dosesPerDayRange
                     )
                 }
                 if plan != nil {

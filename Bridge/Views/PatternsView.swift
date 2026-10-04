@@ -205,6 +205,7 @@ private struct PatternsContent: View {
                     if olderCount > 0 {
                         Button("See all history") { showAllHistory = true }
                             .buttonStyle(.bordered)
+                            .controlSize(.large)
                         summaryButton
                     }
                 }
@@ -269,6 +270,7 @@ private struct PatternsContent: View {
                 )
             }
             .buttonStyle(.bordered)
+            .controlSize(.large)
         }
     }
 
@@ -277,6 +279,7 @@ private struct PatternsContent: View {
             Label("Summary for my doctor", systemImage: "square.and.arrow.up")
         }
         .buttonStyle(.bordered)
+        .controlSize(.large)
     }
 
     /// Reads the last 30 full days straight from the database, so the summary
@@ -337,15 +340,15 @@ private struct PatternsContent: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Text(range)
-                .font(.caption)
+                .font(.footnote)
                 .foregroundStyle(.secondary)
             if data.granularity == .week {
                 Text("Each bar is one week's average number of doses per day.")
-                    .font(.caption)
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
             }
             Text("Tap a bar to see and edit that \(data.granularity == .week ? "week" : "day")'s doses.")
-                .font(.caption)
+                .font(.footnote)
                 .foregroundStyle(.secondary)
         }
     }
@@ -479,19 +482,19 @@ private struct DosesPerDayChart: View {
                 // the numbers to stay readable, and not on empty days.
                 if showsValueLabels && item.count > 0 {
                     Text("\(item.count)")
-                        .font(.caption2.bold())
+                        .font(.caption.bold())
                         .foregroundStyle(.secondary)
                 }
             }
 
             if let prescribedPerDay {
                 RuleMark(y: .value("Prescribed", prescribedPerDay))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.primary)
                     .lineStyle(StrokeStyle(lineWidth: 2, dash: [6, 4]))
                     .annotation(position: .top, alignment: .leading, spacing: 2) {
                         Text("Plan: \(prescribedPerDay) per day")
-                            .font(.caption2.bold())
-                            .foregroundStyle(.orange)
+                            .font(.caption.bold())
+                            .foregroundStyle(.primary)
                     }
             }
         }
@@ -640,7 +643,7 @@ private struct AveragePainChart: View {
                     y: .value("Average pain", pain),
                     series: .value("Run", point.run)
                 )
-                .foregroundStyle(.red)
+                .foregroundStyle(.tint)
                 .interpolationMethod(.monotone)
 
                 if showsPoints {
@@ -648,12 +651,12 @@ private struct AveragePainChart: View {
                         x: .value("Period", point.stats.start, unit: data.granularity.unit),
                         y: .value("Average pain", pain)
                     )
-                    .foregroundStyle(.red)
+                    .foregroundStyle(.tint)
                     .annotation(position: .top, spacing: 2) {
                         // The score above each dot, only for the short 14-day view.
                         if showsValueLabels {
                             Text(pain, format: .number.precision(.fractionLength(0...1)))
-                                .font(.caption2.bold())
+                                .font(.caption.bold())
                                 .foregroundStyle(.secondary)
                         }
                     }

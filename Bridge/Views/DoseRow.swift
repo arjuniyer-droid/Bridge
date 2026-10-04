@@ -21,11 +21,11 @@ struct DoseRow: View {
             }
             Spacer()
             Text("Pain \(dose.painScore)")
-                .font(.caption.bold())
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(.orange.opacity(0.15), in: Capsule())
-                .foregroundStyle(.orange)
+                .font(.footnote.weight(.semibold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(.quaternary, in: Capsule())
+                .foregroundStyle(.primary)
         }
         .padding(.vertical, 4)
         // So a tap anywhere on the row counts, not just on the text.

@@ -43,8 +43,13 @@ struct MyPlanView: View {
                     } description: {
                         Text("Add each medication your prescriber gave you.")
                     } actions: {
-                        Button("Add Plan") { formTarget = FormTarget(plan: nil) }
-                            .buttonStyle(.borderedProminent)
+                        Button {
+                            formTarget = FormTarget(plan: nil)
+                        } label: {
+                            Text("Add Plan").foregroundStyle(Color.onAccent)
+                        }
+                        .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
                     }
                 } else {
                     List {
@@ -124,7 +129,7 @@ private struct PlanRow: View {
             Spacer()
             Button("Edit", action: onEdit)
                 .buttonStyle(.bordered)
-                .controlSize(.small)
+                .controlSize(.large)
         }
         .padding(.vertical, 4)
     }
