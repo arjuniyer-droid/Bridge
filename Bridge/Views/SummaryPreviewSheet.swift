@@ -61,6 +61,7 @@ struct SummaryPreviewSheet: View {
                 .background(.bar)
             }
         }
+        .disclaimerFooter()
     }
 
     /// The first line is the title and the all-caps section names are headings.

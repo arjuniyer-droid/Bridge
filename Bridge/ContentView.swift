@@ -11,16 +11,16 @@ struct ContentView: View {
     var body: some View {
         TabView {
             Tab("Today", systemImage: "sun.max") {
-                TodayView()
+                TodayView().disclaimerFooter()
             }
             Tab("My Plan", systemImage: "checklist") {
-                MyPlanView()
+                MyPlanView().disclaimerFooter()
             }
             Tab("Patterns", systemImage: "chart.line.uptrend.xyaxis") {
-                PatternsView()
+                PatternsView().disclaimerFooter()
             }
             Tab("Support", systemImage: "heart.circle") {
-                SupportView()
+                SupportView().disclaimerFooter()
             }
         }
     }

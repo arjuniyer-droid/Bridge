@@ -194,6 +194,7 @@ struct DoseFormSheet: View {
             // discarding whatever the person has already typed.
             .interactiveDismissDisabled(hasChanges)
         }
+        .disclaimerFooter()
         .confirmationDialog(
             isEditing ? "Discard your changes?" : "Discard this dose?",
             isPresented: $isShowingDiscardConfirmation,

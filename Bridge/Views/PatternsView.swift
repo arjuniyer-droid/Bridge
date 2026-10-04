@@ -594,6 +594,7 @@ private struct PeriodDosesSheet: View {
                 DoseFormSheet(dose: target.dose)
             }
         }
+        .disclaimerFooter()
         .presentationDetents([.medium, .large])
     }
 }

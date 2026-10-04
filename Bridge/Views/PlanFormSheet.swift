@@ -110,6 +110,7 @@ struct PlanFormSheet: View {
             // A stray swipe shouldn't silently discard what was typed.
             .interactiveDismissDisabled(hasUnsavedChanges)
         }
+        .disclaimerFooter()
         .confirmationDialog(
             "Discard your changes?",
             isPresented: $isShowingDiscardConfirmation,
