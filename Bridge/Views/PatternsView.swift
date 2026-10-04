@@ -109,6 +109,9 @@ private struct PatternsContent: View {
     @State private var olderCount = 0
     /// The tapped bar whose doses are showing, if any.
     @State private var selection: PeriodSelection?
+    /// The doctor summary being shared, once it has been built.
+    @State private var summaryShare: ShareContent?
+    @State private var isShowingSummaryError = false
 
     let today: Date
     @Binding var showAllHistory: Bool
@@ -202,21 +205,22 @@ private struct PatternsContent: View {
                     if olderCount > 0 {
                         Button("See all history") { showAllHistory = true }
                             .buttonStyle(.bordered)
+                        summaryButton
                     }
                 }
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        if olderCount > 0 {
-                            Button {
-                                showAllHistory.toggle()
-                            } label: {
-                                Label(
-                                    showAllHistory ? "Show last \(ChartSpan.defaultDays) days" : "See all history",
-                                    systemImage: showAllHistory ? "calendar" : "clock.arrow.circlepath"
-                                )
+                        // Side by side when they fit, stacked on a narrow screen.
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 12) {
+                                historyButton
+                                summaryButton
                             }
-                            .buttonStyle(.bordered)
+                            VStack(alignment: .leading, spacing: 12) {
+                                historyButton
+                                summaryButton
+                            }
                         }
                         VStack(alignment: .leading, spacing: 16) {
                             dosesSummary(data)
@@ -240,6 +244,75 @@ private struct PatternsContent: View {
         .onChange(of: today) { refreshOlderCount() }
         .sheet(item: $selection) { selection in
             PeriodDosesSheet(selection: selection)
+        }
+        .sheet(item: $summaryShare) { content in
+            SummaryPreviewSheet(content: content)
+        }
+        .alert("Couldn't make the summary", isPresented: $isShowingSummaryError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Your doses couldn't be read, so no summary was made. Please try again.")
+        }
+    }
+
+    /// Switches the charts between the last 14 days and all history. Hidden
+    /// when there is nothing older to show.
+    @ViewBuilder
+    private var historyButton: some View {
+        if olderCount > 0 {
+            Button {
+                showAllHistory.toggle()
+            } label: {
+                Label(
+                    showAllHistory ? "Show last \(ChartSpan.defaultDays) days" : "See all history",
+                    systemImage: showAllHistory ? "calendar" : "clock.arrow.circlepath"
+                )
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private var summaryButton: some View {
+        Button(action: shareDoctorSummary) {
+            Label("Summary for my doctor", systemImage: "square.and.arrow.up")
+        }
+        .buttonStyle(.bordered)
+    }
+
+    /// Reads the last 30 full days straight from the database, so the summary
+    /// doesn't depend on which range the charts are showing, then shows it with
+    /// a Share button. If the doses can't be read it says so rather than
+    /// showing a summary that wrongly claims nothing was logged.
+    private func shareDoctorSummary() {
+        let calendar = Calendar.current
+        let end = today
+        let start = calendar.date(byAdding: .day, value: -DoctorSummary.windowDays, to: today)!
+
+        do {
+            let windowDoses = try modelContext.fetch(
+                FetchDescriptor<Dose>(
+                    predicate: #Predicate { $0.timeTaken >= start && $0.timeTaken < end },
+                    sortBy: [SortDescriptor(\.timeTaken)]
+                )
+            )
+            var earliest = FetchDescriptor<Dose>(sortBy: [SortDescriptor(\.timeTaken)])
+            earliest.fetchLimit = 1
+            let firstDoseEver = try modelContext.fetch(earliest).first?.timeTaken
+
+            let summary = DoctorSummary.make(
+                doses: windowDoses.map {
+                    DoseRecord(name: $0.medicationName, amount: $0.amount, time: $0.timeTaken, pain: $0.painScore)
+                },
+                plans: plans.map {
+                    PlanRecord(name: $0.medicationName, amount: $0.amountPerDose, dosesPerDay: $0.dosesPerDay)
+                },
+                firstDoseEver: firstDoseEver,
+                today: today,
+                calendar: calendar
+            )
+            summaryShare = ShareContent(text: summary.body, subject: summary.subject)
+        } catch {
+            isShowingSummaryError = true
         }
     }
 
