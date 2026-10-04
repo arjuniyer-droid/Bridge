@@ -15,6 +15,8 @@ struct PatternsView: View {
 
     /// Whether the charts reach back to the first logged dose instead of 14 days.
     @State private var showAllHistory = false
+    /// The current day, kept fresh so the 14-day window moves on at midnight.
+    @State private var today = Date.startOfToday
 
     /// True when something was logged before the last 14 days, so there is
     /// more history than the default charts show.
@@ -24,7 +26,7 @@ struct PatternsView: View {
         let windowStart = calendar.date(
             byAdding: .day,
             value: -(Self.dayCount - 1),
-            to: calendar.startOfDay(for: .now)
+            to: today
         )!
         return calendar.startOfDay(for: first.timeTaken) < windowStart
     }
@@ -42,7 +44,6 @@ struct PatternsView: View {
     /// included with a count of zero and no pain score so gaps are visible.
     private var dayStats: [DayStats] {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: .now)
         let dosesByDay = Dictionary(
             grouping: doses,
             by: { calendar.startOfDay(for: $0.timeTaken) }
@@ -113,6 +114,10 @@ struct PatternsView: View {
                 }
             }
             .navigationTitle("Patterns")
+        }
+        .onNewDay {
+            let now = Date.startOfToday
+            if now != today { today = now }
         }
     }
 

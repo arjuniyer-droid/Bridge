@@ -10,6 +10,9 @@ import SwiftData
 struct HistoryView: View {
     @Query(sort: \Dose.timeTaken, order: .reverse) private var doses: [Dose]
     @State private var formTarget: DoseFormTarget?
+    /// The current day, kept fresh so the "Today" and "Yesterday" headings
+    /// move on at midnight instead of labelling the wrong days.
+    @State private var today = Date.startOfToday
 
     private struct DayGroup: Identifiable {
         let day: Date
@@ -64,6 +67,10 @@ struct HistoryView: View {
                 DoseFormSheet(dose: target.dose)
             }
         }
+        .onNewDay {
+            let now = Date.startOfToday
+            if now != today { today = now }
+        }
     }
 
     private func header(for group: DayGroup) -> some View {
@@ -78,8 +85,9 @@ struct HistoryView: View {
 
     private func dayTitle(_ day: Date) -> String {
         let calendar = Calendar.current
-        if calendar.isDateInToday(day) { return "Today" }
-        if calendar.isDateInYesterday(day) { return "Yesterday" }
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+        if calendar.isDate(day, inSameDayAs: today) { return "Today" }
+        if calendar.isDate(day, inSameDayAs: yesterday) { return "Yesterday" }
         return day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
     }
 }
