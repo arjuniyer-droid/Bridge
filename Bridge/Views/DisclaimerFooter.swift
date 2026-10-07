@@ -7,16 +7,19 @@ import SwiftUI
 
 /// The reminder shown at the bottom of every screen.
 struct DisclaimerFooter: View {
-    static let text = "Bridge does not give medical advice. Your prescriber is the only authority."
-
     var body: some View {
-        Text(Self.text)
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+        Text("Bridge does not give medical advice. Your prescriber is the only authority.")
+            .font(.bridge(.caption))
+            .foregroundStyle(Color.textSecondary)
             .multilineTextAlignment(.center)
+            // This bar is pinned to every screen. At the largest accessibility
+            // text sizes it would otherwise fill about 40% of the screen and
+            // squeeze the content, so its own text stops growing at this size.
+            // Everything else on screen still scales.
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .frame(maxWidth: .infinity)
-            .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.horizontal, Space.unit)
+            .padding(.vertical, Space.half)
             .background(.bar)
     }
 }

@@ -42,7 +42,7 @@ struct DoseFormSheet: View {
     @State private var isShowingDiscardConfirmation = false
     @State private var isShowingDeleteConfirmation = false
     @State private var isShowingError = false
-    @State private var errorTitle = ""
+    @State private var errorTitle: LocalizedStringKey = ""
 
     init(dose: Dose? = nil) {
         self.dose = dose
@@ -108,64 +108,92 @@ struct DoseFormSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Medication") {
-                    // Autocorrect must stay off: it silently rewrites drug names.
-                    TextField("Name", text: $medicationName)
-                        .focused($focusedField, equals: .name)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.words)
-                    if focusedField == .name {
-                        ForEach(nameSuggestions, id: \.self) { name in
-                            SuggestionRow(text: name) {
-                                medicationName = name
-                                focusedField = .amount
+            Screen(footer: true) {
+                VStack(alignment: .leading, spacing: Space.half) {
+                    SectionTitle("Medication")
+                    DividedStack {
+                        // Autocorrect must stay off: it silently rewrites drug names.
+                        TextField(text: $medicationName, prompt: prompt("Name")) {
+                            Text("Name")
+                        }
+                            .focused($focusedField, equals: .name)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.words)
+                            .font(.bridge(.body))
+                            .cardRow()
+                        if focusedField == .name {
+                            ForEach(nameSuggestions, id: \.self) { name in
+                                SuggestionRow(text: name) {
+                                    medicationName = name
+                                    focusedField = .amount
+                                }
+                            }
+                        }
+                        TextField(text: $amount, prompt: prompt("Amount")) {
+                            Text("Amount")
+                        }
+                            .focused($focusedField, equals: .amount)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .font(.bridge(.body))
+                            .cardRow()
+                        if focusedField == .amount {
+                            ForEach(amountSuggestions, id: \.self) { value in
+                                SuggestionRow(text: value) {
+                                    amount = value
+                                    focusedField = nil
+                                }
                             }
                         }
                     }
-                    TextField("Amount", text: $amount)
-                        .focused($focusedField, equals: .amount)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                    if focusedField == .amount {
-                        ForEach(amountSuggestions, id: \.self) { value in
-                            SuggestionRow(text: value) {
-                                amount = value
-                                focusedField = nil
-                            }
+                    .card(padded: false)
+                }
+
+                VStack(alignment: .leading, spacing: Space.half) {
+                    SectionTitle("Time")
+                    Group {
+                        if isEditing {
+                            // A correction can fix the day as well as the time.
+                            DatePicker(
+                                "Taken",
+                                selection: $timeTaken,
+                                in: ...Date.now,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                        } else {
+                            // Time only: a new dose is for today, so it always
+                            // lands in the Today list.
+                            DatePicker(
+                                "Time taken",
+                                selection: $timeTaken,
+                                in: ...Date.now,
+                                displayedComponents: .hourAndMinute
+                            )
                         }
                     }
+                    .font(.bridge(.body))
+                    .cardRow()
+                    .card(padded: false)
                 }
-                Section("Time") {
-                    if isEditing {
-                        // A correction can fix the day as well as the time. The
-                        // History tab shows every day, so the dose won't vanish.
-                        DatePicker(
-                            "Taken",
-                            selection: $timeTaken,
-                            in: ...Date.now,
-                            displayedComponents: [.date, .hourAndMinute]
-                        )
-                    } else {
-                        // Time only: a new dose is for today, so it always
-                        // lands in the Today list.
-                        DatePicker(
-                            "Time taken",
-                            selection: $timeTaken,
-                            in: ...Date.now,
-                            displayedComponents: .hourAndMinute
-                        )
-                    }
-                }
-                Section("Pain level") {
+
+                VStack(alignment: .leading, spacing: Space.half) {
+                    SectionTitle("Pain level")
                     ThumbStepper(title: "Pain: \(painScore) / 10", value: $painScore, range: 0...10)
+                        .cardRow()
+                        .card(padded: false)
                 }
+
                 if isEditing {
-                    Section {
-                        Button("Delete Dose", role: .destructive) {
-                            isShowingDeleteConfirmation = true
-                        }
+                    Button(role: .destructive) {
+                        isShowingDeleteConfirmation = true
+                    } label: {
+                        Text("Delete Dose")
+                            .font(.bridge(.headline))
+                            .foregroundStyle(Color.destructive)
+                            .cardRow()
                     }
+                    .buttonStyle(.plain)
+                    .card(padded: false)
                 }
             }
             .animation(.default, value: focusedField)
@@ -177,9 +205,9 @@ struct DoseFormSheet: View {
                 Button("Delete", role: .destructive) { deleteDose() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This will remove \(originalName) (\(originalAmount)) logged \(originalTime.formatted(date: .abbreviated, time: .shortened)). This can't be undone.")
+                Text("This will remove \(originalName) (\(originalAmount)) logged \(originalTime, format: Date.FormatStyle(date: .abbreviated, time: .shortened)). This can't be undone.")
             }
-            .navigationTitle(isEditing ? "Edit Dose" : "Log a Dose")
+            .navigationTitle(LocalizedStringKey(isEditing ? "Edit Dose" : "Log a Dose"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -194,9 +222,8 @@ struct DoseFormSheet: View {
             // discarding whatever the person has already typed.
             .interactiveDismissDisabled(hasChanges)
         }
-        .disclaimerFooter()
         .confirmationDialog(
-            isEditing ? "Discard your changes?" : "Discard this dose?",
+            LocalizedStringKey(isEditing ? "Discard your changes?" : "Discard this dose?"),
             isPresented: $isShowingDiscardConfirmation,
             titleVisibility: .visible
         ) {
@@ -241,7 +268,7 @@ struct DoseFormSheet: View {
             dismiss()
         } catch {
             modelContext.rollback()
-            errorTitle = isEditing ? "Couldn't save your changes" : "Couldn't save this dose"
+            errorTitle = LocalizedStringKey(isEditing ? "Couldn't save your changes" : "Couldn't save this dose")
             isShowingError = true
         }
     }
@@ -267,15 +294,18 @@ private struct SuggestionRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack {
+            HStack(spacing: Space.half) {
                 Image(systemName: "list.clipboard")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.tint)
                 Text(text)
+                    .font(.bridge(.body))
+                    .foregroundStyle(Color.textPrimary)
                 Spacer()
                 Text("From My Plan")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.bridge(.fine))
+                    .foregroundStyle(Color.textSecondary)
             }
+            .cardRow()
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

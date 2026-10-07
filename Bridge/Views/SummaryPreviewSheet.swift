@@ -11,6 +11,8 @@ struct ShareContent: Identifiable {
     let id = UUID()
     let text: String
     let subject: String
+    /// The indexes of the lines that are section headings.
+    let headings: Set<Int>
 }
 
 /// Shows the doctor summary in full so it can be read before it is sent, with
@@ -26,21 +28,21 @@ struct SummaryPreviewSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 6) {
+            Screen(footer: true) {
+                VStack(alignment: .leading, spacing: Space.half) {
                     ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
                         if line.isEmpty {
-                            Color.clear.frame(height: 8)
+                            Color.clear.frame(height: Space.half)
                         } else {
                             Text(line)
-                                .font(font(for: line, at: index))
+                                .font(.bridge(role(at: index)))
+                                .foregroundStyle(Color.textPrimary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
                 .textSelection(.enabled)
+                .card()
             }
             .navigationTitle("Summary for my doctor")
             .navigationBarTitleDisplayMode(.inline)
@@ -49,33 +51,20 @@ struct SummaryPreviewSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .safeAreaInset(edge: .bottom) {
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 ShareLink(item: content.text, subject: Text(content.subject)) {
                     Label("Share", systemImage: "square.and.arrow.up")
-                        .font(.headline)
-                        .foregroundStyle(Color.onAccent)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
                 }
-                .buttonStyle(.borderedProminent)
-                .padding()
+                .buttonStyle(.bridgePrimary)
+                .padding(Space.unit)
                 .background(.bar)
             }
         }
-        .disclaimerFooter()
     }
 
-    /// The first line is the title and the all-caps section names are headings.
-    /// If the summary's wording ever stops matching this, the text simply shows
-    /// in the body style.
-    private func font(for line: String, at index: Int) -> Font {
-        if index == 0 { return .title3.bold() }
-        if let first = line.split(separator: " ").first,
-           first.count >= 3,
-           first == first.uppercased(),
-           first.allSatisfy(\.isLetter) {
-            return .headline
-        }
-        return .body
+    /// The first line is the title; the summary says which others are headings.
+    private func role(at index: Int) -> TypeRole {
+        if index == 0 { return .title }
+        return content.headings.contains(index) ? .headline : .body
     }
 }

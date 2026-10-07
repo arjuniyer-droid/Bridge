@@ -87,7 +87,6 @@ private struct PeriodSelection: Identifiable {
     let start: Date
     /// Exclusive: the start of the next day or week.
     let end: Date
-    let title: String
     let spansOneDay: Bool
 
     init(period: PeriodStats, granularity: Granularity) {
@@ -95,14 +94,12 @@ private struct PeriodSelection: Identifiable {
         start = period.start
         spansOneDay = granularity == .day
         end = calendar.date(byAdding: .day, value: spansOneDay ? 1 : 7, to: period.start)!
-        title = spansOneDay
-            ? period.start.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
-            : "Week of " + period.start.formatted(.dateTime.month(.abbreviated).day())
     }
 }
 
 private struct PatternsContent: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.locale) private var locale
     @Query private var doses: [Dose]
     @Query private var plans: [Plan]
     /// How many doses fall before the default 14-day window.
@@ -196,47 +193,34 @@ private struct PatternsContent: View {
 
         Group {
             if data.total == 0 {
-                ContentUnavailableView {
-                    Label("No doses in the last \(ChartSpan.defaultDays) days", systemImage: "chart.bar")
-                } description: {
-                    Text("Log a dose on the Today tab and it will show up here.")
-                } actions: {
+                Screen(footer: true) {
+                    EmptyStateCard(
+                        systemImage: "chart.bar",
+                        title: "No doses in the last \(ChartSpan.defaultDays) days",
+                        message: "Log a dose on the Today tab and it will show up here."
+                    )
                     // Older doses may exist even though the last 14 days are empty.
                     if olderCount > 0 {
-                        Button("See all history") { showAllHistory = true }
-                            .buttonStyle(.bordered)
-                            .controlSize(.large)
-                        summaryButton
+                        actionButtons
                     }
                 }
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        // Side by side when they fit, stacked on a narrow screen.
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: 12) {
-                                historyButton
-                                summaryButton
-                            }
-                            VStack(alignment: .leading, spacing: 12) {
-                                historyButton
-                                summaryButton
-                            }
+                Screen(footer: true) {
+                    actionButtons
+                    VStack(alignment: .leading, spacing: Space.unit) {
+                        dosesSummary(data)
+                        DosesPerDayChart(data: data, prescribedPerDay: prescribedPerDay) { period in
+                            selection = PeriodSelection(period: period, granularity: data.granularity)
                         }
-                        VStack(alignment: .leading, spacing: 16) {
-                            dosesSummary(data)
-                            DosesPerDayChart(data: data, prescribedPerDay: prescribedPerDay) { period in
-                                selection = PeriodSelection(period: period, granularity: data.granularity)
-                            }
-                            .frame(height: 220)
-                        }
-                        VStack(alignment: .leading, spacing: 16) {
-                            painSummary(data)
-                            AveragePainChart(data: data)
-                                .frame(height: 180)
-                        }
+                        .frame(height: 220)
                     }
-                    .padding()
+                    .card()
+                    VStack(alignment: .leading, spacing: Space.unit) {
+                        painSummary(data)
+                        AveragePainChart(data: data)
+                            .frame(height: 180)
+                    }
+                    .card()
                 }
             }
         }
@@ -256,6 +240,20 @@ private struct PatternsContent: View {
         }
     }
 
+    /// Side by side when they fit, stacked on a narrow screen or with large text.
+    private var actionButtons: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Space.unit) {
+                historyButton
+                summaryButton
+            }
+            VStack(spacing: Space.unit) {
+                historyButton
+                summaryButton
+            }
+        }
+    }
+
     /// Switches the charts between the last 14 days and all history. Hidden
     /// when there is nothing older to show.
     @ViewBuilder
@@ -265,12 +263,13 @@ private struct PatternsContent: View {
                 showAllHistory.toggle()
             } label: {
                 Label(
-                    showAllHistory ? "Show last \(ChartSpan.defaultDays) days" : "See all history",
+                    showAllHistory
+                        ? Lang(locale)("Show last \(ChartSpan.defaultDays) days")
+                        : Lang(locale)("See all history"),
                     systemImage: showAllHistory ? "calendar" : "clock.arrow.circlepath"
                 )
             }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
+            .buttonStyle(.bridgeSecondary)
         }
     }
 
@@ -278,8 +277,7 @@ private struct PatternsContent: View {
         Button(action: shareDoctorSummary) {
             Label("Summary for my doctor", systemImage: "square.and.arrow.up")
         }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
+        .buttonStyle(.bridgeSecondary)
     }
 
     /// Reads the last 30 full days straight from the database, so the summary
@@ -311,59 +309,69 @@ private struct PatternsContent: View {
                 },
                 firstDoseEver: firstDoseEver,
                 today: today,
-                calendar: calendar
+                calendar: calendar,
+                lang: Lang(locale)
             )
-            summaryShare = ShareContent(text: summary.body, subject: summary.subject)
+            summaryShare = ShareContent(
+                text: summary.body,
+                subject: summary.subject,
+                headings: summary.headings
+            )
         } catch {
             isShowingSummaryError = true
         }
     }
 
     private func dosesSummary(_ data: ChartData) -> some View {
-        let format = Date.FormatStyle().month(.abbreviated).day()
+        let lang = Lang(locale)
+        let format = Date.FormatStyle(locale: locale).month(.abbreviated).day()
         let range = "\(data.rangeStart.formatted(format)) – \(today.formatted(format))"
-        let doseWord = data.total == 1 ? "dose" : "doses"
+        let doses = lang("\(data.total) doses")
         let summary: String
         switch data.granularity {
         case .week:
-            summary = "\(data.total) \(doseWord) over \(data.periods.count) weeks"
+            summary = lang("\(doses) over \(data.periods.count) weeks")
         case .day where data.periods.count > ChartSpan.defaultDays:
-            summary = "\(data.total) \(doseWord) over \(data.periods.count) days"
+            summary = lang("\(doses) over \(data.periods.count) days")
         case .day:
-            summary = "\(data.total) \(doseWord) in the last \(ChartSpan.defaultDays) days"
+            summary = lang("\(doses) in the last \(ChartSpan.defaultDays) days")
         }
 
-        return VStack(alignment: .leading, spacing: 4) {
-            Text(data.granularity == .week ? "Doses per day, weekly average" : "Doses per day")
-                .font(.headline)
-            Text(summary)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Text(range)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+        return VStack(alignment: .leading, spacing: Space.tight) {
+            Text(LocalizedStringKey(data.granularity == .week ? "Doses per day, weekly average" : "Doses per day"))
+                .font(.bridge(.headline))
+                .foregroundStyle(Color.textPrimary)
+            Text(verbatim: summary)
+                .font(.bridge(.secondary))
+                .foregroundStyle(Color.textSecondary)
+            Text(verbatim: range)
+                .font(.bridge(.caption))
+                .foregroundStyle(Color.textSecondary)
             if data.granularity == .week {
                 Text("Each bar is one week's average number of doses per day.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(.bridge(.caption))
+                    .foregroundStyle(Color.textSecondary)
             }
-            Text("Tap a bar to see and edit that \(data.granularity == .week ? "week" : "day")'s doses.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            Text(LocalizedStringKey(data.granularity == .week
+                ? "Tap a bar to see and edit that week's doses."
+                : "Tap a bar to see and edit that day's doses."))
+                .font(.bridge(.caption))
+                .foregroundStyle(Color.textSecondary)
         }
     }
 
     private func painSummary(_ data: ChartData) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Space.tight) {
             Text("Average pain score")
-                .font(.headline)
+                .font(.bridge(.headline))
+                .foregroundStyle(Color.textPrimary)
             Text(
-                data.granularity == .week
+                LocalizedStringKey(data.granularity == .week
                     ? "0 is no pain, 10 is the worst. Each point is a week's average, and weeks without a dose have no point."
-                    : "0 is no pain, 10 is the worst. Days without a dose have no point."
+                    : "0 is no pain, 10 is the worst. Days without a dose have no point.")
             )
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
+            .font(.bridge(.secondary))
+            .foregroundStyle(Color.textSecondary)
         }
     }
 
@@ -418,23 +426,32 @@ private struct PeriodAxis: ViewModifier {
             .chartXScale(domain: domain)
             .chartXAxis {
                 AxisMarks(values: labelled) { _ in
-                    AxisGridLine()
-                    AxisTick()
+                    AxisGridLine().foregroundStyle(Color.hairline.opacity(0.5))
                     AxisValueLabel(format: labelFormat)
+                        .font(.bridge(.fine))
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
     }
+}
+
+/// The small title along a chart axis.
+private func axisTitle(_ text: LocalizedStringKey) -> some View {
+    Text(text)
+        .font(.bridge(.fine))
+        .foregroundStyle(Color.textSecondary)
 }
 
 /// Y-axis marks on the left. The labels get a fixed width so the two charts'
 /// plot areas line up even when one needs "0.25" and the other "10".
 private func yAxisMarks(_ ticks: [Double]) -> some AxisContent {
     AxisMarks(position: .leading, values: ticks) { value in
-        AxisGridLine()
-        AxisTick()
+        AxisGridLine().foregroundStyle(Color.hairline.opacity(0.5))
         AxisValueLabel {
             if let tick = value.as(Double.self) {
                 Text(tick, format: .number.precision(.fractionLength(0...2)))
+                    .font(.bridge(.fine))
+                    .foregroundStyle(Color.textSecondary)
                     .frame(width: 32, alignment: .trailing)
             }
         }
@@ -477,31 +494,36 @@ private struct DosesPerDayChart: View {
                 y: .value("Doses per day", item.dosesPerDay)
             )
             .foregroundStyle(.tint)
-            .annotation(position: .top, spacing: 2) {
+            .cornerRadius(Radius.bar)
+            .annotation(position: .top, spacing: Space.tight) {
                 // The count on each bar, only while there are few enough bars for
                 // the numbers to stay readable, and not on empty days.
                 if showsValueLabels && item.count > 0 {
                     Text("\(item.count)")
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
+                        .font(.bridge(.fineStrong))
+                        .foregroundStyle(Color.textSecondary)
                 }
             }
 
             if let prescribedPerDay {
                 RuleMark(y: .value("Prescribed", prescribedPerDay))
-                    .foregroundStyle(.primary)
-                    .lineStyle(StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                    .annotation(position: .top, alignment: .leading, spacing: 2) {
+                    .foregroundStyle(Color.textSecondary)
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+                    .annotation(position: .top, alignment: .leading, spacing: Space.tight) {
                         Text("Plan: \(prescribedPerDay) per day")
-                            .font(.caption.bold())
-                            .foregroundStyle(.primary)
+                            .font(.bridge(.fineStrong))
+                            .foregroundStyle(Color.textPrimary)
                     }
             }
         }
         .chartYScale(domain: 0...(yTicks.last ?? 1))
         .chartYAxis { yAxisMarks(yTicks) }
-        .chartYAxisLabel(data.granularity == .week ? "Doses per day (weekly avg)" : "Doses", position: .leading)
-        .chartXAxisLabel(position: .bottom, alignment: .center) { Text(data.granularity == .week ? "Week of" : "Day of month") }
+        .chartYAxisLabel(position: .leading) {
+            axisTitle(data.granularity == .week ? "Doses per day (weekly avg)" : "Doses")
+        }
+        .chartXAxisLabel(position: .bottom, alignment: .center) {
+            axisTitle(data.granularity == .week ? "Week of" : "Day of month")
+        }
         .modifier(PeriodAxis(data: data))
         .chartOverlay { proxy in
             GeometryReader { geometry in
@@ -525,6 +547,7 @@ private struct DosesPerDayChart: View {
 /// The doses of one tapped day or week, each opening the edit form.
 private struct PeriodDosesSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @Query private var doses: [Dose]
     @State private var formTarget: DoseFormTarget?
 
@@ -546,6 +569,16 @@ private struct PeriodDosesSheet: View {
         var id: Date { day }
     }
 
+    private var title: String {
+        if selection.spansOneDay {
+            return selection.start.formatted(
+                Date.FormatStyle(locale: locale).weekday(.wide).month(.abbreviated).day()
+            )
+        }
+        let start = selection.start.formatted(Date.FormatStyle(locale: locale).month(.abbreviated).day())
+        return Lang(locale)("Week of \(start)")
+    }
+
     /// The period's doses by calendar day, newest day first.
     private var groups: [DayGroup] {
         let calendar = Calendar.current
@@ -558,35 +591,41 @@ private struct PeriodDosesSheet: View {
         NavigationStack {
             Group {
                 if doses.isEmpty {
-                    ContentUnavailableView(
-                        "No doses",
-                        systemImage: "pills",
-                        description: Text("Nothing is logged for this period.")
-                    )
+                    Screen(footer: true) {
+                        EmptyStateCard(
+                            systemImage: "pills",
+                            title: "No doses",
+                            message: "Nothing is logged for this period."
+                        )
+                    }
                 } else {
-                    List {
+                    Screen(footer: true) {
                         ForEach(groups) { group in
-                            Section {
-                                ForEach(group.doses) { dose in
-                                    Button {
-                                        formTarget = DoseFormTarget(dose: dose)
-                                    } label: {
-                                        DoseRow(dose: dose)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityHint("Edit this dose")
-                                }
-                            } header: {
+                            VStack(alignment: .leading, spacing: Space.half) {
                                 // A single day's title is already in the navigation bar.
                                 if !selection.spansOneDay {
-                                    Text(group.day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
+                                    SectionTitle(verbatim: group.day.formatted(
+                                        Date.FormatStyle(locale: locale).weekday(.abbreviated).month(.abbreviated).day()
+                                    ))
                                 }
+                                DividedStack {
+                                    ForEach(group.doses) { dose in
+                                        Button {
+                                            formTarget = DoseFormTarget(dose: dose)
+                                        } label: {
+                                            DoseRow(dose: dose)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityHint("Edit this dose")
+                                    }
+                                }
+                                .card(padded: false)
                             }
                         }
                     }
                 }
             }
-            .navigationTitle(selection.title)
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -597,7 +636,6 @@ private struct PeriodDosesSheet: View {
                 DoseFormSheet(dose: target.dose)
             }
         }
-        .disclaimerFooter()
         .presentationDetents([.medium, .large])
     }
 }
@@ -644,6 +682,7 @@ private struct AveragePainChart: View {
                     series: .value("Run", point.run)
                 )
                 .foregroundStyle(.tint)
+                .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
                 .interpolationMethod(.monotone)
 
                 if showsPoints {
@@ -652,12 +691,12 @@ private struct AveragePainChart: View {
                         y: .value("Average pain", pain)
                     )
                     .foregroundStyle(.tint)
-                    .annotation(position: .top, spacing: 2) {
+                    .annotation(position: .top, spacing: Space.tight) {
                         // The score above each dot, only for the short 14-day view.
                         if showsValueLabels {
                             Text(pain, format: .number.precision(.fractionLength(0...1)))
-                                .font(.caption.bold())
-                                .foregroundStyle(.secondary)
+                                .font(.bridge(.fineStrong))
+                                .foregroundStyle(Color.textSecondary)
                         }
                     }
                 }
@@ -665,8 +704,12 @@ private struct AveragePainChart: View {
         }
         .chartYScale(domain: 0...10)
         .chartYAxis { yAxisMarks([0, 2, 4, 6, 8, 10]) }
-        .chartYAxisLabel(data.granularity == .week ? "Pain (weekly avg, 0–10)" : "Pain (0–10)", position: .leading)
-        .chartXAxisLabel(position: .bottom, alignment: .center) { Text(data.granularity == .week ? "Week of" : "Day of month") }
+        .chartYAxisLabel(position: .leading) {
+            axisTitle(data.granularity == .week ? "Pain (weekly avg, 0–10)" : "Pain (0–10)")
+        }
+        .chartXAxisLabel(position: .bottom, alignment: .center) {
+            axisTitle(data.granularity == .week ? "Week of" : "Day of month")
+        }
         .modifier(PeriodAxis(data: data))
     }
 }

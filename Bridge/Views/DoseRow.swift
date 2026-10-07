@@ -6,28 +6,30 @@
 import SwiftUI
 
 /// One logged dose: medication, amount, time and pain score. Shared by the
-/// Today and History lists.
+/// Today list and the day and week sheets. It pads itself, so it belongs in a
+/// card made with `DividedStack` and `card(padded: false)`.
 struct DoseRow: View {
     let dose: Dose
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: Space.unit) {
+            VStack(alignment: .leading, spacing: Space.tight) {
                 Text(dose.medicationName)
-                    .font(.headline)
-                Text("\(dose.amount) · \(dose.timeTaken.formatted(date: .omitted, time: .shortened))")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.bridge(.headline))
+                    .foregroundStyle(Color.textPrimary)
+                Text("\(dose.amount) · \(dose.timeTaken, format: Date.FormatStyle(date: .omitted, time: .shortened))")
+                    .font(.bridge(.secondary))
+                    .foregroundStyle(Color.textSecondary)
             }
-            Spacer()
+            Spacer(minLength: Space.half)
             Text("Pain \(dose.painScore)")
-                .font(.footnote.weight(.semibold))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .font(.bridge(.captionStrong))
+                .foregroundStyle(Color.textPrimary)
+                .padding(.horizontal, Space.half)
+                .padding(.vertical, Space.tight)
                 .background(.quaternary, in: Capsule())
-                .foregroundStyle(.primary)
         }
-        .padding(.vertical, 4)
+        .cardRow()
         // So a tap anywhere on the row counts, not just on the text.
         .contentShape(Rectangle())
     }

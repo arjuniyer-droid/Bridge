@@ -15,19 +15,13 @@ struct TodayView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
+            Screen(footer: true) {
                 Button {
                     formTarget = DoseFormTarget(dose: nil)
                 } label: {
-                    Label("Log a Dose", systemImage: "plus.circle.fill")
-                        .font(.title2.bold())
-                        .foregroundStyle(Color.onAccent)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                    Label("Log a Dose", systemImage: "plus")
                 }
-                .buttonStyle(.borderedProminent)
-                .padding(.horizontal)
-                .padding(.top, 8)
+                .buttonStyle(.bridgePrimary)
 
                 TodaysDoses(day: today) { dose in
                     formTarget = DoseFormTarget(dose: dose)
@@ -64,23 +58,27 @@ private struct TodaysDoses: View {
 
     var body: some View {
         if doses.isEmpty {
-            ContentUnavailableView(
-                "No doses logged today",
+            EmptyStateCard(
                 systemImage: "pills",
-                description: Text("Doses you log today will show up here.")
+                title: "No doses logged today",
+                message: "Doses you log today will show up here."
             )
-            .frame(maxHeight: .infinity)
         } else {
-            List(doses) { dose in
-                Button {
-                    onSelect(dose)
-                } label: {
-                    DoseRow(dose: dose)
+            VStack(alignment: .leading, spacing: Space.half) {
+                SectionTitle("Logged today")
+                DividedStack {
+                    ForEach(doses) { dose in
+                        Button {
+                            onSelect(dose)
+                        } label: {
+                            DoseRow(dose: dose)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Edit this dose")
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityHint("Edit this dose")
+                .card(padded: false)
             }
-            .listStyle(.plain)
         }
     }
 }

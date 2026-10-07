@@ -26,7 +26,7 @@ struct PlanFormSheet: View {
     @State private var isShowingDiscardConfirmation = false
     @State private var isShowingDeleteConfirmation = false
     @State private var isShowingError = false
-    @State private var errorTitle = ""
+    @State private var errorTitle: LocalizedStringKey = ""
 
     init(plan: Plan?) {
         self.plan = plan
@@ -59,31 +59,54 @@ struct PlanFormSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Medication") {
+            Screen(footer: true) {
+                VStack(alignment: .leading, spacing: Space.half) {
+                    SectionTitle("Medication")
                     // Autocorrect must stay off: it silently rewrites drug names.
-                    TextField("Name", text: $medicationName)
+                    TextField(text: $medicationName, prompt: prompt("Name")) {
+                        Text("Name")
+                    }
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.words)
+                        .font(.bridge(.body))
+                        .cardRow()
+                        .card(padded: false)
                 }
-                Section("Amount per dose") {
-                    TextField("e.g. 400mg", text: $amountPerDose)
+
+                VStack(alignment: .leading, spacing: Space.half) {
+                    SectionTitle("Amount per dose")
+                    TextField(text: $amountPerDose, prompt: prompt("e.g. 400mg")) {
+                        Text("Amount per dose")
+                    }
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
+                        .font(.bridge(.body))
+                        .cardRow()
+                        .card(padded: false)
                 }
-                Section("Doses per day") {
+
+                VStack(alignment: .leading, spacing: Space.half) {
+                    SectionTitle("Doses per day")
                     ThumbStepper(
                         title: "\(dosesPerDay) per day",
                         value: $dosesPerDay,
                         range: Plan.dosesPerDayRange
                     )
+                    .cardRow()
+                    .card(padded: false)
                 }
+
                 if plan != nil {
-                    Section {
-                        Button("Delete Plan", role: .destructive) {
-                            isShowingDeleteConfirmation = true
-                        }
+                    Button(role: .destructive) {
+                        isShowingDeleteConfirmation = true
+                    } label: {
+                        Text("Delete Plan")
+                            .font(.bridge(.headline))
+                            .foregroundStyle(Color.destructive)
+                            .cardRow()
                     }
+                    .buttonStyle(.plain)
+                    .card(padded: false)
                 }
             }
             .confirmationDialog(
@@ -96,7 +119,7 @@ struct PlanFormSheet: View {
             } message: {
                 Text("This will remove \(originalName) from your plan. This can't be undone.")
             }
-            .navigationTitle(plan == nil ? "Add Plan" : "Edit Plan")
+            .navigationTitle(LocalizedStringKey(plan == nil ? "Add Plan" : "Edit Plan"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -110,8 +133,7 @@ struct PlanFormSheet: View {
             // A stray swipe shouldn't silently discard what was typed.
             .interactiveDismissDisabled(hasUnsavedChanges)
         }
-        .disclaimerFooter()
-        .confirmationDialog(
+                .confirmationDialog(
             "Discard your changes?",
             isPresented: $isShowingDiscardConfirmation,
             titleVisibility: .visible

@@ -13,6 +13,7 @@ struct BridgeApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .chosenAppearance()
         }
         .modelContainer(for: [Dose.self, Plan.self])
     }

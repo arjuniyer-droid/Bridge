@@ -38,26 +38,30 @@ struct MyPlanView: View {
         NavigationStack {
             Group {
                 if plans.isEmpty {
-                    ContentUnavailableView {
-                        Label("No plan yet", systemImage: "list.clipboard")
-                    } description: {
-                        Text("Add each medication your prescriber gave you.")
-                    } actions: {
-                        Button {
-                            formTarget = FormTarget(plan: nil)
-                        } label: {
-                            Text("Add Plan").foregroundStyle(Color.onAccent)
-                        }
-                        .buttonStyle(.borderedProminent)
-                            .controlSize(.large)
+                    Screen(footer: true) {
+                        EmptyStateCard(
+                            systemImage: "list.clipboard",
+                            title: "No plan yet",
+                            message: "Add each medication your prescriber gave you."
+                        )
+                        Button("Add Plan") { formTarget = FormTarget(plan: nil) }
+                            .buttonStyle(.bridgePrimary)
                     }
                 } else {
+                    // A List, so each plan can still be swiped to delete. The
+                    // rows are drawn as cards.
                     List {
-                        Section("Prescribed by your provider") {
+                        Section {
                             ForEach(plans) { plan in
-                                PlanRow(plan: plan) {
+                                PlanCard(plan: plan) {
                                     formTarget = FormTarget(plan: plan)
                                 }
+                                .listRowInsets(EdgeInsets(
+                                    top: Space.half, leading: Space.unit,
+                                    bottom: Space.half, trailing: Space.unit
+                                ))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     Button("Delete", systemImage: "trash", role: .destructive) {
                                         pendingDeletion = PendingDeletion(
@@ -67,8 +71,18 @@ struct MyPlanView: View {
                                     }
                                 }
                             }
+                        } header: {
+                            // The list already insets its headers by one grid unit,
+                            // which lines this up with the cards' left edge.
+                            SectionTitle("Prescribed by your provider")
+                                .textCase(nil)
                         }
+                        .listSectionSeparator(.hidden)
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .background(Color.screenBackground.ignoresSafeArea())
+                    .disclaimerFooter()
                 }
             }
             .navigationTitle("My Plan")
@@ -113,25 +127,26 @@ struct MyPlanView: View {
     }
 }
 
-private struct PlanRow: View {
+/// One medication in the plan.
+private struct PlanCard: View {
     let plan: Plan
     let onEdit: () -> Void
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: Space.unit) {
+            VStack(alignment: .leading, spacing: Space.tight) {
                 Text(plan.medicationName)
-                    .font(.headline)
+                    .font(.bridge(.headline))
+                    .foregroundStyle(Color.textPrimary)
                 Text("\(plan.amountPerDose) · \(plan.dosesPerDay) per day")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.bridge(.secondary))
+                    .foregroundStyle(Color.textSecondary)
             }
-            Spacer()
+            Spacer(minLength: Space.half)
             Button("Edit", action: onEdit)
-                .buttonStyle(.bordered)
-                .controlSize(.large)
+                .buttonStyle(.bridgeSecondaryCompact)
         }
-        .padding(.vertical, 4)
+        .card()
     }
 }
 
