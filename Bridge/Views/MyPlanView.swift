@@ -42,10 +42,10 @@ struct MyPlanView: View {
                         EmptyStateCard(
                             systemImage: "list.clipboard",
                             title: "No plan yet",
-                            message: "Add each medication your prescriber gave you."
+                            message: "Add each medication your prescriber gave you.",
+                            actionTitle: "Add Plan",
+                            action: { formTarget = FormTarget(plan: nil) }
                         )
-                        Button("Add Plan") { formTarget = FormTarget(plan: nil) }
-                            .buttonStyle(.bridgePrimary)
                     }
                 } else {
                     // A List, so each plan can still be swiped to delete. The

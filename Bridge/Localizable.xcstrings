@@ -589,6 +589,54 @@
         }
       }
     },
+    "Bridge has no server to send anything to. It has no analytics and no ads, and it doesn't track how you use it.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bridge no tiene ningún servidor al que enviar nada. No usa analíticas ni anuncios, y no rastrea cómo la usas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bridge 没有可发送数据的服务器。没有数据分析，没有广告，也不会追踪你如何使用它。"
+          }
+        }
+      }
+    },
+    "Bridge helps you log your doses and pain, so you and your prescriber can see how you're doing.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bridge te ayuda a registrar tus dosis y tu dolor, para que tú y quien te receta puedan ver cómo estás."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bridge 帮你记录用药和疼痛情况，让你和处方医生都能了解你的状况。"
+          }
+        }
+      }
+    },
+    "Bridge never gives medical advice. Your prescriber is the only authority.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bridge nunca da consejos médicos. Quien te receta es la única autoridad."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bridge 绝不提供医疗建议。你的处方医生才是唯一权威。"
+          }
+        }
+      }
+    },
     "Calls the main number, then pauses and dials the extension.": {
       "localizations": {
         "es": {
@@ -633,6 +681,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "颜色"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续"
           }
         }
       }
@@ -1229,6 +1293,22 @@
         }
       }
     },
+    "Everything stays on this phone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo se queda en este teléfono"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有内容都保存在这部手机上"
+          }
+        }
+      }
+    },
     "Free, confidential, 24 hours a day, every day, in English and Spanish. Treatment referral and information for mental health and substance use.": {
       "localizations": {
         "es": {
@@ -1277,6 +1357,38 @@
         }
       }
     },
+    "Get Started": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始使用"
+          }
+        }
+      }
+    },
+    "Go to Today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ir a Hoy"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往“今天”"
+          }
+        }
+      }
+    },
     "Graphite": {
       "localizations": {
         "es": {
@@ -1321,6 +1433,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "我是退伍军人"
+          }
+        }
+      }
+    },
+    "If you back up your iPhone, the backup includes Bridge like any other app. That is a setting on your phone, not something Bridge does.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si haces una copia de seguridad de tu iPhone, esta incluye Bridge como cualquier otra app. Es un ajuste de tu teléfono, no algo que haga Bridge."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果你备份 iPhone，备份中会像其他应用一样包含 Bridge 的数据。这是手机本身的设置，不是 Bridge 的行为。"
           }
         }
       }
@@ -1485,6 +1613,22 @@
         }
       }
     },
+    "Log a dose when you take your medication.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra una dosis cuando tomes tu medicamento."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服药时，记得在这里记录一次。"
+          }
+        }
+      }
+    },
     "Logged today": {
       "localizations": {
         "es": {
@@ -1629,6 +1773,38 @@
         }
       }
     },
+    "No account": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin cuenta"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有账号"
+          }
+        }
+      }
+    },
+    "No account and no cloud. Nothing is shared until you share it.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin cuenta y sin nube. No se comparte nada hasta que tú lo compartas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有账号，没有云端。在你主动分享之前，不会分享任何内容。"
+          }
+        }
+      }
+    },
     "No doses": {
       "localizations": {
         "es": {
@@ -1709,6 +1885,22 @@
         }
       }
     },
+    "No medical advice": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin consejos médicos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不提供医疗建议"
+          }
+        }
+      }
+    },
     "No plan has been entered in the app, so there is nothing to compare against.": {
       "localizations": {
         "es": {
@@ -1737,6 +1929,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "还没有计划"
+          }
+        }
+      }
+    },
+    "No server, no tracking": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin servidor, sin rastreo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有服务器，没有追踪"
           }
         }
       }
@@ -1817,6 +2025,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "疼痛（0 = 无，10 = 最严重）"
+          }
+        }
+      }
+    },
+    "Page %lld of %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Página %1$lld de %2$lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$lld 页，共 %2$lld 页"
           }
         }
       }
@@ -2025,6 +2249,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "由你的医疗服务提供者开具"
+          }
+        }
+      }
+    },
+    "Privacy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacidad"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私"
           }
         }
       }
@@ -2397,6 +2637,22 @@
         }
       }
     },
+    "The only way anything leaves your phone is when you tap Share on your doctor summary and pick where it goes.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La única forma en que algo sale de tu teléfono es cuando tocas Compartir en tu resumen para el médico y eliges adónde va."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有当你在给医生的摘要上点按“分享”并选择发送位置时，内容才会离开你的手机。"
+          }
+        }
+      }
+    },
     "The second half of the period averaged %@, compared with %@ in the first half (%@).": {
       "localizations": {
         "es": {
@@ -2557,6 +2813,70 @@
         }
       }
     },
+    "Welcome to Bridge": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te damos la bienvenida a Bridge"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎使用 Bridge"
+          }
+        }
+      }
+    },
+    "You decide what's shared": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tú decides qué se comparte"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由你决定分享什么"
+          }
+        }
+      }
+    },
+    "You never sign up or log in. Bridge doesn't know who you are.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nunca te registras ni inicias sesión. Bridge no sabe quién eres."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你不需要注册或登录。Bridge 不知道你是谁。"
+          }
+        }
+      }
+    },
+    "Your data stays on this phone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus datos se quedan en este teléfono"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的数据保存在这部手机上"
+          }
+        }
+      }
+    },
     "Your doses couldn't be read, so no summary was made. Please try again.": {
       "localizations": {
         "es": {
@@ -2569,6 +2889,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法读取你的用药记录，因此没有生成摘要。请重试。"
+          }
+        }
+      }
+    },
+    "Your doses, pain scores and plan are saved on this phone with SwiftData, Apple's built-in storage. Nothing is copied anywhere else.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus dosis, tus puntuaciones de dolor y tu plan se guardan en este teléfono con SwiftData, el almacenamiento integrado de Apple. No se copia nada en ningún otro lugar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的用药记录、疼痛评分和计划通过苹果内置的存储技术 SwiftData 保存在这部手机上，不会被复制到其他任何地方。"
           }
         }
       }

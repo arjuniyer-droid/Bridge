@@ -265,6 +265,7 @@ struct DoseFormSheet: View {
         // app is killed right after logging or correcting it.
         do {
             try modelContext.save()
+            Haptics.saved()
             dismiss()
         } catch {
             modelContext.rollback()

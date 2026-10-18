@@ -82,10 +82,67 @@ struct SupportView: View {
                         .card(padded: false)
                     }
                 }
+
+                VStack(alignment: .leading, spacing: Space.half) {
+                    SectionTitle("Privacy")
+                    DividedStack {
+                        PrivacyRow(
+                            systemImage: "iphone",
+                            title: "Your data stays on this phone",
+                            message: "Your doses, pain scores and plan are saved on this phone with SwiftData, Apple's built-in storage. Nothing is copied anywhere else."
+                        )
+                        PrivacyRow(
+                            systemImage: "person.crop.circle.badge.xmark",
+                            title: "No account",
+                            message: "You never sign up or log in. Bridge doesn't know who you are."
+                        )
+                        PrivacyRow(
+                            systemImage: "eye.slash",
+                            title: "No server, no tracking",
+                            message: "Bridge has no server to send anything to. It has no analytics and no ads, and it doesn't track how you use it."
+                        )
+                        PrivacyRow(
+                            systemImage: "square.and.arrow.up",
+                            title: "You decide what's shared",
+                            message: "The only way anything leaves your phone is when you tap Share on your doctor summary and pick where it goes."
+                        )
+                    }
+                    .card(padded: false)
+                    CardNote("If you back up your iPhone, the backup includes Bridge like any other app. That is a setting on your phone, not something Bridge does.")
+                }
             }
             .navigationTitle("Support")
             .animation(.default, value: showsVeteranResources)
         }
+    }
+}
+
+/// One plain-language privacy fact: an icon, a short heading and a sentence or two.
+private struct PrivacyRow: View {
+    let systemImage: String
+    let title: LocalizedStringKey
+    let message: LocalizedStringKey
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Space.unit) {
+            Image(systemName: systemImage)
+                .font(.bridge(.headline))
+                .foregroundStyle(.tint)
+                .frame(width: 28)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: Space.tight) {
+                Text(title)
+                    .font(.bridge(.headline))
+                    .foregroundStyle(Color.textPrimary)
+                Text(message)
+                    .font(.bridge(.caption))
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .cardRow()
+        .accessibilityElement(children: .combine)
     }
 }
 

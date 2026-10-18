@@ -100,6 +100,7 @@ private struct PeriodSelection: Identifiable {
 private struct PatternsContent: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.locale) private var locale
+    @Environment(\.selectTab) private var selectTab
     @Query private var doses: [Dose]
     @Query private var plans: [Plan]
     /// How many doses fall before the default 14-day window.
@@ -197,7 +198,9 @@ private struct PatternsContent: View {
                     EmptyStateCard(
                         systemImage: "chart.bar",
                         title: "No doses in the last \(ChartSpan.defaultDays) days",
-                        message: "Log a dose on the Today tab and it will show up here."
+                        message: "Log a dose on the Today tab and it will show up here.",
+                        actionTitle: "Go to Today",
+                        action: { selectTab(.today) }
                     )
                     // Older doses may exist even though the last 14 days are empty.
                     if olderCount > 0 {
@@ -487,11 +490,15 @@ private struct DosesPerDayChart: View {
         return stride(from: 0, through: topTick, by: step).map { $0 }
     }
 
+    /// False until the chart has appeared, so the bars can rise from the baseline.
+    @State private var grown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         Chart(data.periods) { item in
             BarMark(
                 x: .value("Period", item.start, unit: data.granularity.unit),
-                y: .value("Doses per day", item.dosesPerDay)
+                y: .value("Doses per day", grown ? item.dosesPerDay : 0)
             )
             .foregroundStyle(.tint)
             .cornerRadius(Radius.bar)
@@ -502,6 +509,8 @@ private struct DosesPerDayChart: View {
                     Text("\(item.count)")
                         .font(.bridge(.fineStrong))
                         .foregroundStyle(Color.textSecondary)
+                        .opacity(grown ? 1 : 0)
+                        .animation(reduceMotion ? nil : .easeIn(duration: 0.3).delay(0.4), value: grown)
                 }
             }
 
@@ -525,6 +534,17 @@ private struct DosesPerDayChart: View {
             axisTitle(data.granularity == .week ? "Week of" : "Day of month")
         }
         .modifier(PeriodAxis(data: data))
+        .onAppear {
+            if reduceMotion {
+                grown = true
+            } else {
+                grown = false
+                // On the next turn, so the bars are first drawn flat.
+                DispatchQueue.main.async {
+                    withAnimation(Motion.grow) { grown = true }
+                }
+            }
+        }
         .chartOverlay { proxy in
             GeometryReader { geometry in
                 Rectangle()
@@ -645,6 +665,9 @@ private struct PeriodDosesSheet: View {
 /// or joining across.
 private struct AveragePainChart: View {
     let data: ChartData
+    /// The line fades in rather than growing, since it has no baseline to grow from.
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Dots on each period are only useful over a short span; over a long one
     /// they pile up, so the line stands alone.
@@ -711,6 +734,17 @@ private struct AveragePainChart: View {
             axisTitle(data.granularity == .week ? "Week of" : "Day of month")
         }
         .modifier(PeriodAxis(data: data))
+        .opacity(shown ? 1 : 0)
+        .onAppear {
+            if reduceMotion {
+                shown = true
+            } else {
+                shown = false
+                DispatchQueue.main.async {
+                    withAnimation(Motion.grow) { shown = true }
+                }
+            }
+        }
     }
 }
 

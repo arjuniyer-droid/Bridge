@@ -173,6 +173,7 @@ struct PlanFormSheet: View {
         // Save now rather than waiting for SwiftData's delayed autosave.
         do {
             try modelContext.save()
+            Haptics.saved()
             dismiss()
         } catch {
             modelContext.rollback()

@@ -72,33 +72,46 @@ struct CardNote: View {
     }
 }
 
-/// A card that says there is nothing here yet.
+/// A card that says there is nothing here yet, in one friendly line, and
+/// offers the step that fills it.
 struct EmptyStateCard: View {
     let systemImage: String
     let title: LocalizedStringKey
     let message: LocalizedStringKey
+    /// The next step, as a button under the message. Without one the card only explains.
+    var actionTitle: LocalizedStringKey?
+    var action: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: Space.half) {
-            Image(systemName: systemImage)
-                .font(.bridge(.title))
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-                .padding(.bottom, Space.half)
-                .accessibilityHidden(true)
-            Text(title)
-                .font(.bridge(.headline))
-                .foregroundStyle(Color.textPrimary)
-                .multilineTextAlignment(.center)
-            Text(message)
-                .font(.bridge(.secondary))
-                .foregroundStyle(Color.textSecondary)
-                .multilineTextAlignment(.center)
+        VStack(spacing: Space.unit) {
+            VStack(spacing: Space.half) {
+                Image(systemName: systemImage)
+                    .font(.bridge(.title))
+                    .imageScale(.large)
+                    .foregroundStyle(.tint)
+                    .padding(.bottom, Space.half)
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(.bridge(.headline))
+                    .foregroundStyle(Color.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text(message)
+                    .font(.bridge(.secondary))
+                    .foregroundStyle(Color.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            .accessibilityElement(children: .combine)
+
+            if let actionTitle, let action {
+                Button(actionTitle, action: action)
+                    .buttonStyle(.bridgePrimary)
+                    .padding(.top, Space.half)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, Space.double)
+        .padding(.horizontal, Space.unit)
         .card()
-        .accessibilityElement(children: .combine)
     }
 }
 
