@@ -85,11 +85,14 @@ Bridge/
 
 ## About
 
-Built by **Arjun Iyer**, a 9th grader, with **Sidharth Iyer** a 12th grader, advising on the science, on what clinicians want in a summary, and on keeping the app clear of medical advice. Both students are from Palo Alto High School, California.
+Built by **Arjun Iyer**, a 9th grader, with **Sidharth Iyer** a 12th grader, advising on the science, on what clinicians want in a summary, and on keeping the app clear of medical advice. Both students are from Palo Alto High School, California. 
+
+## Patent
+This application is Patent Pending. System and Method for Patient-Controlled Medication Adherence Logging with Prescriber-Plan Deviation Analysis and Clinician Summary Generation. U.S. Provisional Patent Application No. 64/171,833
 
 ### Use of AI
 
-I built Bridge in SwiftUI using Claude as a coding assistant. I wrote the feature specifications, tested every build, debugged with the AI, and can explain every file in the project. I also got user feedback by working with seniors on the app and iterated over the product development to make it user friendly.
+We used Claude Code as a coding assistant to help us understand the code and run the build -> test environment using different versions of iOS simulators. I wrote the feature specifications, tested every build, debugged with the AI, and can explain every file in the project. I also got user feedback by working with seniors on the app and iterated over the product development to make it user friendly.
 
 ## If you need help now
 
