@@ -85,7 +85,7 @@ Bridge/
 
 ## About
 
-Built by **Arjun Iyer**, a 9th grader, with **Sidharth Iyer** a 12th grader, advising on the science, on what clinicians want in a summary, and on keeping the app clear of medical advice.
+Built by **Arjun Iyer**, a 9th grader, with **Sidharth Iyer** a 12th grader, advising on the science, on what clinicians want in a summary, and on keeping the app clear of medical advice. Both students are from Palo Alto High School, California.
 
 ### Use of AI
 
