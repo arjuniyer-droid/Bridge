@@ -89,7 +89,7 @@ Built by **Arjun Iyer**, a 9th grader, with **Sidharth Iyer** a 12th grader, adv
 
 ### Use of AI
 
-I built Bridge in SwiftUI using Claude as a coding assistant. I wrote the feature specifications, tested every build, debugged with the AI, and can explain every file in the project.
+I built Bridge in SwiftUI using Claude as a coding assistant. I wrote the feature specifications, tested every build, debugged with the AI, and can explain every file in the project. I also got user feedback by working with seniors on the app and iterated over the product development to make it user friendly.
 
 ## If you need help now
 
